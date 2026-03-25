@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.signal import hilbert
-from analysis.signal import isolate_and_xcorr, time_to_index
+from analysis.signal import isolate_and_xcorr
 
 def compute_envelope(waveform):
     """Analytic envelope of a 1D waveform via Hilbert transform."""
