@@ -3,38 +3,41 @@ import pandas as pd
 import io
 
 def parse_metadata_from_txt(txt_file):
-    """
-    Parse metadata from the .txt file uploaded via Streamlit.
-    txt_file: a Streamlit UploadedFile object
-    Returns: dict with all acquisition parameters
-    """
-    # Read raw bytes and decode UTF-16-LE
     raw_bytes = txt_file.read()
-    
-    # Handle BOM if present
     if raw_bytes[:2] == b'\xff\xfe':
         content = raw_bytes[2:].decode('utf-16-le')
     else:
-        content = raw_bytes.decode('utf-16-le')
+        try:
+            content = raw_bytes.decode('utf-16-le')
+        except:
+            content = raw_bytes.decode('utf-8', errors='replace')
 
-    # --- Parse filename for acquisition parameters ---
-    file_name       = txt_file.name
-    file_name_data  = file_name.replace('.dat.txt', '').replace('.txt', '')
-    parts           = file_name.split('_')
+    file_name      = txt_file.name
+    file_name_data = file_name.replace('.dat.txt', '').replace('.txt', '')
+    parts          = file_name.split('_')
 
-    metadata = {
-        'file_name'      : file_name,
-        'file_name_data' : file_name_data,
-        'transducer'     : float(parts[1].replace('p', '.').replace('MHz', '')),
-        'start_time'     : float(parts[2].replace('us', '')),
-        'length_of_signal': float(parts[3].replace('us', '')),
-        'voltage'        : float(parts[4].replace('V', '')),
-        'capacitance'    : float(parts[5].replace('pF', '')),
-        'damping'        : float(parts[6].replace('Ohm', '')),
-        'gain'           : float(parts[7].replace('dB', ''))
-    }
+    # ── Fixed positional parsing: parts[1] through parts[7] ────────
+    # Convention: [sample]_[MHz]_[us]_[us]_[V]_[pF]_[Ohm]_[dB]_[anything...]
+    try:
+        metadata = {
+            'file_name'        : file_name,
+            'file_name_data'   : file_name_data,
+            'transducer'       : float(parts[1].replace('p', '.').replace('MHz', '')),
+            'start_time'       : float(parts[2].replace('us', '')),
+            'length_of_signal' : float(parts[3].replace('us', '')),
+            'voltage'          : float(parts[4].replace('V', '')),
+            'capacitance'      : float(parts[5].replace('pF', '')),
+            'damping'          : float(parts[6].replace('Ohm', '')),
+            'gain'             : float(parts[7].replace('dB', '')),
+        }
+    except (IndexError, ValueError) as e:
+        raise ValueError(
+            f"Filename does not follow the expected convention:\n"
+            f"[sample]_[MHz]_[us]_[us]_[V]_[pF]_[Ohm]_[dB]_[anything...]\n"
+            f"Got: {file_name}\nError: {e}"
+        )
 
-    # --- Parse file content for scan geometry and sampling ---
+    # ── Parse file content ──────────────────────────────────────────
     for line in content.splitlines():
         line = line.strip()
         if not line:
@@ -54,13 +57,13 @@ def parse_metadata_from_txt(txt_file):
         elif 'Data type' in line:
             metadata['data_type']         = int(line.split(':')[1].strip().split()[0])
 
-    # --- Derived quantities ---
-    metadata['f_sampling_hz']    = metadata['f_sampling'] * 1e6
-    metadata['sample_interval']  = 1 / metadata['f_sampling_hz'] * 1e6   # in µs
-    metadata['time_axis']        = (
+    # ── Derived quantities ──────────────────────────────────────────
+    metadata['f_sampling_hz']   = metadata['f_sampling'] * 1e6
+    metadata['sample_interval'] = 1 / metadata['f_sampling_hz'] * 1e6
+    metadata['time_axis']       = (
         metadata['start_time'] +
         np.arange(metadata['number_of_samples']) * metadata['sample_interval']
-    )   # full time axis in µs
+    )
 
     return metadata
 
