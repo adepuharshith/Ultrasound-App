@@ -40,8 +40,7 @@ if mode == "C-scan (2D raster)":
 
     st.divider()
 
-    # ── Parse metadata ────────────────────────
-    # Done at top level so metadata is available everywhere below
+    # ── Parse metadata (top level) ────────────
     if txt_file:
         try:
             metadata  = parse_metadata_from_txt(txt_file)
@@ -54,14 +53,13 @@ if mode == "C-scan (2D raster)":
         parsed_ok = False
         metadata  = {}
 
-    # ── Load waveform data ────────────────────
-    # Also at top level so waveform_data is available to both waveform and colormap sections
+    # ── Load data (top level) ─────────────────
     if parsed_ok and dat_file:
         with st.spinner("Loading scan data..."):
             try:
-                waveform_data = load_cscan_data(dat_file, metadata)
-                data_loaded   = True
-                time_axis     = metadata['time_axis']
+                waveform_data  = load_cscan_data(dat_file, metadata)
+                data_loaded    = True
+                time_axis      = metadata['time_axis']
                 x_axis, y_axis = build_spatial_axes(metadata)
             except Exception as e:
                 st.error(f"Failed to load .dat file: {e}")
@@ -69,12 +67,17 @@ if mode == "C-scan (2D raster)":
     else:
         data_loaded = False
 
+    # ── Clear state when no data loaded ──────
+    if not data_loaded:
+        for key in ['sel_i', 'sel_j', 'cmap_data', 'cbar_label']:
+            st.session_state.pop(key, None)
+
     # ══════════════════════════════════════════
     # TOP SECTION: Info | Waveform | Gates
     # ══════════════════════════════════════════
     col_info, col_wave, col_gates = st.columns([1, 3, 1])
 
-    # ── Acquisition parameters ────────────────
+    # ── Acquisition panel ─────────────────────
     with col_info:
         st.subheader("Acquisition")
 
@@ -106,7 +109,7 @@ if mode == "C-scan (2D raster)":
 
         fw_enabled = st.checkbox("FW gate", value=False)
         if fw_enabled:
-            t0_fw    = float(time_axis[0])   if data_loaded else 0.0
+            t0_fw    = float(time_axis[0]) if data_loaded else 0.0
             fw_start = st.number_input("FW start (µs)", value=t0_fw,       step=0.1, format="%.2f", key="fw_start")
             fw_end   = st.number_input("FW end (µs)",   value=t0_fw + 2.0, step=0.1, format="%.2f", key="fw_end")
         else:
@@ -124,22 +127,40 @@ if mode == "C-scan (2D raster)":
         st.divider()
         dg_enabled = st.checkbox("Data gate", value=False)
         if dg_enabled:
-            t0_dg  = float(time_axis[0])  if data_loaded else 0.0
-            t1_dg  = float(time_axis[-1]) if data_loaded else 10.0
+            t0_dg    = float(time_axis[0])  if data_loaded else 0.0
+            t1_dg    = float(time_axis[-1]) if data_loaded else 10.0
             dg_start = st.number_input("Data gate start (µs)", value=t0_dg, step=0.1, format="%.2f", key="dg_start")
             dg_end   = st.number_input("Data gate end (µs)",   value=t1_dg, step=0.1, format="%.2f", key="dg_end")
         else:
             dg_start = dg_end = None
 
     # ── Center waveform ───────────────────────
+    # Default: center pixel. After click: selected pixel.
     with col_wave:
-        st.subheader("Center waveform")
         if data_loaded:
-            center_wf = get_center_waveform(waveform_data)
-            fig_wf    = go.Figure()
+            sel_i = st.session_state.get('sel_i', waveform_data.shape[0] // 2)
+            sel_j = st.session_state.get('sel_j', waveform_data.shape[1] // 2)
+
+            if 'sel_i' not in st.session_state:
+                wf_title = "Center waveform"
+            else:
+                x_mm = x_axis[sel_j]
+                y_mm = y_axis[sel_i]
+                wf_title = f"Waveform — pixel ({sel_j}, {sel_i}) | {x_mm:.2f} mm, {y_mm:.2f} mm"
+
+            st.subheader(wf_title)
+
+            display_wf = waveform_data[sel_i, sel_j, :]
+            envelope   = compute_envelope(display_wf)
+
+            fig_wf = go.Figure()
             fig_wf.add_trace(go.Scatter(
-                x=time_axis, y=center_wf, mode='lines',
-                line=dict(color='steelblue', width=1), name='Waveform'
+                x=time_axis, y=display_wf, mode='lines',
+                line=dict(color='steelblue', width=1), name='RF'
+            ))
+            fig_wf.add_trace(go.Scatter(
+                x=time_axis, y=envelope, mode='lines',
+                line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
             ))
             if fw_enabled:
                 fig_wf.add_vrect(x0=fw_start, x1=fw_end,
@@ -158,7 +179,9 @@ if mode == "C-scan (2D raster)":
                                  annotation_position="top left")
             fig_wf.update_layout(
                 xaxis_title="Time (µs)", yaxis_title="Amplitude (normalized)",
-                height=350, margin=dict(l=20, r=20, t=30, b=40), hovermode="x unified"
+                height=350, margin=dict(l=20, r=20, t=30, b=40),
+                hovermode="x unified",
+                legend=dict(orientation="h", y=1.1)
             )
             fig_wf.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
                                  spikedash='dot', spikecolor='gray', spikethickness=1)
@@ -166,6 +189,7 @@ if mode == "C-scan (2D raster)":
                                  spikedash='dot', spikecolor='gray', spikethickness=1)
             st.plotly_chart(fig_wf, use_container_width=True)
         else:
+            st.subheader("Center waveform")
             st.info("Upload .txt and .dat files to view waveform.")
 
     st.divider()
@@ -183,9 +207,9 @@ if mode == "C-scan (2D raster)":
 
     with ctrl2:
         window_options = ["Full window"]
-        if fw_enabled:  window_options.append("FW gate")
-        if bw_enabled:  window_options.append("BW gate")
-        if dg_enabled:  window_options.append("Data gate")
+        if fw_enabled: window_options.append("FW gate")
+        if bw_enabled: window_options.append("BW gate")
+        if dg_enabled: window_options.append("Data gate")
         selected_window = st.selectbox("Plot window", window_options)
 
     with ctrl3:
@@ -193,16 +217,15 @@ if mode == "C-scan (2D raster)":
             thickness_mm = st.number_input("Sample thickness (mm)", value=10.0, step=0.01, format="%.3f")
             thickness_m  = thickness_mm * 1e-3
         else:
-            thickness_m  = None
+            thickness_m = None
             st.markdown(" ")
 
     with ctrl4:
         st.markdown("<br>", unsafe_allow_html=True)
         update_btn = st.button("▶  Update C-scan", use_container_width=True)
 
-    # ── Compute map on button press or first load ──
+    # ── Compute map ───────────────────────────
     if data_loaded:
-        # Determine gate indices
         def get_gate_indices(window):
             if window == "Full window":
                 return 0, len(time_axis)
@@ -214,13 +237,10 @@ if mode == "C-scan (2D raster)":
                 return time_to_index(dg_start, time_axis), time_to_index(dg_end, time_axis)
             return 0, len(time_axis)
 
-        should_compute = update_btn or ('cmap_data' not in st.session_state)
-
-        if should_compute:
+        if update_btn or ('cmap_data' not in st.session_state):
             with st.spinner("Computing C-scan..."):
                 try:
                     idx0, idx1 = get_gate_indices(selected_window)
-
                     if selected_quantity == "Peak amplitude":
                         cmap_data  = compute_peak_amplitude_map(waveform_data, idx0, idx1)
                         cbar_label = "Amplitude"
@@ -231,103 +251,72 @@ if mode == "C-scan (2D raster)":
                         tof_map    = compute_tof_map(waveform_data, idx0, idx1, time_axis)
                         cmap_data  = compute_wave_speed_map(tof_map, thickness_m)
                         cbar_label = "Wave speed (m/s)"
-
                     st.session_state['cmap_data']  = cmap_data
                     st.session_state['cbar_label'] = cbar_label
-
                 except Exception as e:
                     st.error(f"Error computing map: {e}")
 
-    else:
-        # Clear cache if no data loaded
-        if 'cmap_data' in st.session_state:
-            del st.session_state['cmap_data']
-            del st.session_state['cbar_label']
+    # ── Colormap plot ─────────────────────────
+    colormap_choice = st.selectbox(
+        "Colormap", ["viridis", "plasma", "inferno", "magma", "gray", "RdBu", "jet"],
+        key="cmap1"
+    )
 
-    # ── Colormap plot + pixel waveform ─────────
-    col_cmap, col_pixel_wf = st.columns([2, 1])
+    if data_loaded and 'cmap_data' in st.session_state:
+        cmap_data  = st.session_state['cmap_data']
+        cbar_label = st.session_state['cbar_label']
 
-    with col_cmap:
-        colormap_choice = st.selectbox(
-            "Colormap",
-            ["viridis", "plasma", "inferno", "magma", "gray", "RdBu", "jet"],
-            key="cmap1"
+        fig_cmap = go.Figure(data=go.Heatmap(
+            z=cmap_data,
+            x=np.round(x_axis, 4).tolist(),
+            y=np.round(y_axis, 4).tolist(),
+            colorscale=colormap_choice,
+            colorbar=dict(title=cbar_label, thickness=15),
+            hovertemplate="x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>value: %{z:.4f}<extra></extra>"
+        ))
+
+        # Red cross marker on currently selected pixel
+        if 'sel_i' in st.session_state:
+            fig_cmap.add_trace(go.Scatter(
+                x=[x_axis[st.session_state['sel_j']]],
+                y=[y_axis[st.session_state['sel_i']]],
+                mode='markers',
+                marker=dict(symbol='cross', size=12, color='red',
+                            line=dict(width=2, color='white')),
+                showlegend=False
+            ))
+
+        fig_cmap.update_layout(
+            xaxis_title="Scan axis (mm)", yaxis_title="Index axis (mm)",
+            height=500, margin=dict(l=20, r=20, t=30, b=40),
+        )
+        fig_cmap.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
+                               spikedash='dot', spikecolor='white', spikethickness=1)
+        fig_cmap.update_yaxes(showspikes=True, spikemode='across', spikesnap='cursor',
+                               spikedash='dot', spikecolor='white', spikethickness=1)
+
+        # on_select captures click coordinates without re-rendering issues
+        event = st.plotly_chart(
+            fig_cmap,
+            use_container_width=True,
+            on_select="rerun",
+            key="cmap_plot"
         )
 
-        if data_loaded and 'cmap_data' in st.session_state:
-            cmap_data  = st.session_state['cmap_data']
-            cbar_label = st.session_state['cbar_label']
+        # Map click coordinates → array indices → update waveform
+        if event and event.selection and event.selection.points:
+            pt    = event.selection.points[0]
+            new_j = int(np.clip(np.argmin(np.abs(x_axis - pt['x'])), 0, waveform_data.shape[1] - 1))
+            new_i = int(np.clip(np.argmin(np.abs(y_axis - pt['y'])), 0, waveform_data.shape[0] - 1))
+            if new_i != st.session_state.get('sel_i') or new_j != st.session_state.get('sel_j'):
+                st.session_state['sel_i'] = new_i
+                st.session_state['sel_j'] = new_j
+                st.rerun()
 
-            fig_cmap = go.Figure(data=go.Heatmap(
-                z=cmap_data,
-                x=np.round(x_axis, 4).tolist(),
-                y=np.round(y_axis, 4).tolist(),
-                colorscale=colormap_choice,
-                colorbar=dict(title=cbar_label, thickness=15),
-                hovertemplate="x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>value: %{z:.4f}<extra></extra>"
-            ))
-            fig_cmap.update_layout(
-                xaxis_title="Scan axis (mm)",
-                yaxis_title="Index axis (mm)",
-                height=450,
-                margin=dict(l=20, r=20, t=30, b=40),
-            )
-            fig_cmap.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                                   spikedash='dot', spikecolor='white', spikethickness=1)
-            fig_cmap.update_yaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                                   spikedash='dot', spikecolor='white', spikethickness=1)
-            st.plotly_chart(fig_cmap, use_container_width=True)
-        else:
-            st.info("Upload data and press **▶ Update C-scan** to plot." if data_loaded else "Upload data to view C-scan.")
+        st.caption("💡 Click any pixel to update the waveform display above.")
 
-    # ── Pixel waveform viewer ──────────────────
-    with col_pixel_wf:
-        st.markdown("**Waveform at selected pixel**")
-        if data_loaded:
-            max_i = waveform_data.shape[0] - 1
-            max_j = waveform_data.shape[1] - 1
-            sel_i = st.slider("Index axis (row)",  0, max_i, max_i // 2, key="sel_i")
-            sel_j = st.slider("Scan axis (col)",   0, max_j, max_j // 2, key="sel_j")
-
-            # Show physical coordinates
-            x_mm = x_axis[sel_j]
-            y_mm = y_axis[sel_i]
-            st.caption(f"Position: x = {x_mm:.2f} mm, y = {y_mm:.2f} mm")
-
-            selected_wf  = waveform_data[sel_i, sel_j, :]
-            selected_env = compute_envelope(selected_wf)
-
-            fig_sel = go.Figure()
-            fig_sel.add_trace(go.Scatter(
-                x=time_axis, y=selected_wf, mode='lines',
-                line=dict(color='steelblue', width=1), name='RF'
-            ))
-            fig_sel.add_trace(go.Scatter(
-                x=time_axis, y=selected_env, mode='lines',
-                line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
-            ))
-            if fw_enabled:
-                fig_sel.add_vrect(x0=fw_start, x1=fw_end,
-                                  fillcolor="rgba(255,160,122,0.2)",
-                                  line_width=1, line_color="tomato")
-            if bw_enabled:
-                fig_sel.add_vrect(x0=bw_start, x1=bw_end,
-                                  fillcolor="rgba(144,238,144,0.2)",
-                                  line_width=1, line_color="seagreen")
-            if dg_enabled:
-                fig_sel.add_vrect(x0=dg_start, x1=dg_end,
-                                  fillcolor="rgba(180,180,180,0.15)",
-                                  line_width=1, line_color="gray")
-            fig_sel.update_layout(
-                xaxis_title="Time (µs)", yaxis_title="Amplitude",
-                height=420,
-                margin=dict(l=10, r=10, t=40, b=40),
-                legend=dict(orientation="h", y=1.1),
-                title=f"Pixel ({sel_j}, {sel_i})"
-            )
-            st.plotly_chart(fig_sel, use_container_width=True)
-        else:
-            st.info("Upload data to inspect pixel waveforms.")
+    else:
+        st.info("Upload data and press **▶ Update C-scan** to plot." if data_loaded else "Upload data to view C-scan.")
 
 # ═════════════════════════════════════════════
 # MODE 2 — SINGLE WAVEFORM CSV
@@ -360,7 +349,7 @@ else:
 
         with col_result:
             st.subheader("ToF measurement")
-            fs_input = st.number_input("Sampling frequency (MHz)", value=125.0, step=1.0)
+            st.number_input("Sampling frequency (MHz)", value=125.0, step=1.0)
             st.info("Gate-based ToF measurement coming next.")
     else:
         st.info("Upload a single waveform CSV file to begin.")
