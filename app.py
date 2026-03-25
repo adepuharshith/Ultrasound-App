@@ -10,10 +10,10 @@ from analysis.io import (
 from analysis.cscan import (
     compute_peak_amplitude_map,
     compute_tof_map,
-    compute_wave_speed_map,
     compute_envelope,
     time_to_index,
     build_spatial_axes,
+    compute_wave_speed_xcorr,
 )
 
 # ─────────────────────────────────────────────
@@ -35,7 +35,7 @@ if mode == "C-scan (2D raster)":
     with col_ul:
         txt_file = st.file_uploader("Upload metadata file (.txt)", type=["txt"])
     with col_ur:
-        dat_file = st.file_uploader("Upload data file (.dat)",      type=["dat"])
+        dat_file = st.file_uploader("Upload data file (.dat)", type=["dat"])
 
     st.divider()
 
@@ -69,6 +69,7 @@ if mode == "C-scan (2D raster)":
     else:
         data_loaded = False
 
+    # ── Clear state when no data loaded ──────
     if not data_loaded:
         for key in ['sel_i', 'sel_j', 'cmap1_data', 'cmap1_label',
                     'cmap2_data', 'cmap2_label',
@@ -101,7 +102,7 @@ if mode == "C-scan (2D raster)":
         show_val("Scan increment",  "scan_increment",  "mm")
         show_val("Index increment", "index_increment", "mm")
         st.divider()
-        # Sample thickness always here
+        # Sample thickness — always visible
         thickness_mm = st.number_input(
             "Sample thickness (mm)", value=10.0, step=0.01,
             format="%.3f", key="thickness_mm"
@@ -118,19 +119,17 @@ if mode == "C-scan (2D raster)":
     with col_gates:
         st.subheader("Gates")
 
-        # Gate being set by box-selection
         active_gate_set = st.radio(
-            "Box-select on waveform sets:",
+            "Box-select sets:",
             ["FW gate", "BW gate", "Data gate"],
             key="active_gate_set"
         )
-
         st.divider()
 
         # FW gate
         fw_enabled = st.checkbox("Show FW gate", value=False)
         if fw_enabled:
-            t0 = float(time_axis[0]) if data_loaded else 0.0
+            t0       = float(time_axis[0]) if data_loaded else 0.0
             fw_s_def = st.session_state.get('fw_start', t0)
             fw_e_def = st.session_state.get('fw_end',   t0 + 2.0)
             fw_start = st.number_input("FW start (µs)", value=fw_s_def, step=0.1, format="%.2f", key="fw_start_input")
@@ -146,7 +145,7 @@ if mode == "C-scan (2D raster)":
         # BW gate
         bw_enabled = st.checkbox("Show BW gate", value=False)
         if bw_enabled:
-            t1 = float(time_axis[-1]) if data_loaded else 10.0
+            t1       = float(time_axis[-1]) if data_loaded else 10.0
             bw_s_def = st.session_state.get('bw_start', t1 - 4.0)
             bw_e_def = st.session_state.get('bw_end',   t1 - 1.0)
             bw_start = st.number_input("BW start (µs)", value=bw_s_def, step=0.1, format="%.2f", key="bw_start_input")
@@ -162,8 +161,8 @@ if mode == "C-scan (2D raster)":
         # Data gate
         dg_enabled = st.checkbox("Show Data gate", value=False)
         if dg_enabled:
-            t0 = float(time_axis[0])  if data_loaded else 0.0
-            t1 = float(time_axis[-1]) if data_loaded else 10.0
+            t0       = float(time_axis[0])  if data_loaded else 0.0
+            t1       = float(time_axis[-1]) if data_loaded else 10.0
             dg_s_def = st.session_state.get('dg_start', t0)
             dg_e_def = st.session_state.get('dg_end',   t1)
             dg_start = st.number_input("Data start (µs)", value=dg_s_def, step=0.1, format="%.2f", key="dg_start_input")
@@ -202,8 +201,6 @@ if mode == "C-scan (2D raster)":
                 x=time_axis, y=envelope, mode='lines',
                 line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
             ))
-
-            # Gate shading
             if fw_enabled and fw_start is not None:
                 fig_wf.add_vrect(x0=fw_start, x1=fw_end,
                                  fillcolor="rgba(255,160,122,0.25)", line_width=1,
@@ -225,26 +222,24 @@ if mode == "C-scan (2D raster)":
                 height=380, margin=dict(l=20, r=20, t=30, b=40),
                 hovermode="x unified",
                 legend=dict(orientation="h", y=1.1),
-                dragmode="select",        # box-select active by default
-                selectdirection="h",      # horizontal selection only
+                dragmode="select",
+                selectdirection="h",
             )
             fig_wf.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
                                  spikedash='dot', spikecolor='gray', spikethickness=1)
             fig_wf.update_yaxes(showspikes=True, spikemode='across', spikesnap='cursor',
                                  spikedash='dot', spikecolor='gray', spikethickness=1)
 
-            # Box-select on waveform → set gate boundaries
             wf_event = st.plotly_chart(
-                fig_wf,
-                use_container_width=True,
-                on_select="rerun",
-                key="wf_plot"
+                fig_wf, use_container_width=True,
+                on_select="rerun", key="wf_plot"
             )
 
+            # Box-select on waveform → update gate boundaries
             if wf_event and wf_event.selection and wf_event.selection.box:
-                box    = wf_event.selection.box[0]
-                x_min  = float(min(box['x']))
-                x_max  = float(max(box['x']))
+                box   = wf_event.selection.box[0]
+                x_min = float(min(box['x']))
+                x_max = float(max(box['x']))
                 if active_gate_set == "FW gate":
                     st.session_state['fw_start'] = round(x_min, 3)
                     st.session_state['fw_end']   = round(x_max, 3)
@@ -255,7 +250,6 @@ if mode == "C-scan (2D raster)":
                     st.session_state['dg_start'] = round(x_min, 3)
                     st.session_state['dg_end']   = round(x_max, 3)
                 st.rerun()
-
         else:
             st.subheader("Center waveform")
             st.info("Upload .txt and .dat files to view waveform.")
@@ -267,15 +261,36 @@ if mode == "C-scan (2D raster)":
     # ══════════════════════════════════════════
     st.subheader("C-scan")
 
-    CMAP_RANGE     = 15.0    # mm — fixed axis extent either side of centre
+    CMAP_RANGE     = 15.0
     CMAP_OPTIONS   = ["viridis", "plasma", "inferno", "magma", "gray", "RdBu", "jet"]
-    QTY_OPTIONS    = ["Peak amplitude", "ToF", "Wave speed"]
+    QTY_OPTIONS    = ["Peak amplitude", "ToF", "Wave speed (xcorr)"]
+
     WIN_OPTIONS_BASE = ["Full window"]
     if fw_enabled and fw_start is not None: WIN_OPTIONS_BASE.append("FW gate")
     if bw_enabled and bw_start is not None: WIN_OPTIONS_BASE.append("BW gate")
     if dg_enabled and dg_start is not None: WIN_OPTIONS_BASE.append("Data gate")
 
+    # ── xcorr parameters — shown once above both colormaps ───────
+    if data_loaded:
+        xc_col1, xc_col2, _ = st.columns([2, 2, 4])
+        with xc_col1:
+            pulse_width_us = st.number_input(
+                "Pulse width for xcorr (µs)", value=0.5, step=0.05,
+                format="%.2f", key="pulse_width_us"
+            )
+        with xc_col2:
+            fw_threshold = st.number_input(
+                "FW amplitude threshold", value=0.3, step=0.05,
+                format="%.2f", key="fw_threshold"
+            )
+    else:
+        pulse_width_us = 0.5
+        fw_threshold   = 0.3
+
+    # ── Helper functions ──────────────────────
     def gate_indices(window):
+        if not data_loaded:
+            return 0, 1
         if window == "Full window":
             return 0, len(time_axis)
         elif window == "FW gate":
@@ -292,9 +307,23 @@ if mode == "C-scan (2D raster)":
             return compute_peak_amplitude_map(waveform_data, idx0, idx1), "Amplitude"
         elif quantity == "ToF":
             return compute_tof_map(waveform_data, idx0, idx1, time_axis), "ToF (µs)"
-        elif quantity == "Wave speed":
-            tof = compute_tof_map(waveform_data, idx0, idx1, time_axis)
-            return compute_wave_speed_map(tof, thickness_m), "Wave speed (m/s)"
+        elif quantity == "Wave speed (xcorr)":
+            if not (fw_enabled and bw_enabled and
+                    fw_start is not None and bw_start is not None):
+                st.error("Wave speed (xcorr) requires both FW and BW gates to be set.")
+                st.stop()
+            ws, _ = compute_wave_speed_xcorr(
+                waveform_data,
+                fw_gate_us         = (fw_start, fw_end),
+                bw_gate_us         = (bw_start, bw_end),
+                pulse_width_us     = pulse_width_us,
+                time_axis          = time_axis,
+                f_sampling_hz      = metadata['f_sampling_hz'],
+                sample_interval_us = metadata['sample_interval'],
+                thickness_m        = thickness_m,
+                fw_amp_threshold   = fw_threshold,
+            )
+            return ws, "Wave speed (m/s)"
 
     def make_cmap_fig(cmap_data, cbar_label, colorscale, marker_i, marker_j):
         fig = go.Figure(data=go.Heatmap(
@@ -305,7 +334,7 @@ if mode == "C-scan (2D raster)":
             colorbar=dict(title=cbar_label, thickness=14),
             hovertemplate="x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>value: %{z:.4f}<extra></extra>"
         ))
-        if marker_i is not None:
+        if marker_i is not None and marker_j is not None:
             fig.add_trace(go.Scatter(
                 x=[x_axis[marker_j]], y=[y_axis[marker_i]],
                 mode='markers',
@@ -334,9 +363,9 @@ if mode == "C-scan (2D raster)":
     # ─── Colormap 1 ───────────────────────────
     with col_c1:
         st.markdown("**C-scan 1**")
-        cc1_qty  = st.selectbox("Quantity",  QTY_OPTIONS,      key="cc1_qty")
-        cc1_win  = st.selectbox("Window",    WIN_OPTIONS_BASE, key="cc1_win")
-        cc1_cmap = st.selectbox("Colormap",  CMAP_OPTIONS,     key="cc1_cmap")
+        cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
+        cc1_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc1_win")
+        cc1_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc1_cmap")
         upd1     = st.button("▶  Update", key="upd1", use_container_width=True)
 
         if data_loaded and (upd1 or 'cmap1_data' not in st.session_state):
@@ -349,12 +378,12 @@ if mode == "C-scan (2D raster)":
                     st.error(f"C-scan 1 error: {e}")
 
         if data_loaded and 'cmap1_data' in st.session_state:
-            marker_i = st.session_state.get('sel_i')
-            marker_j = st.session_state.get('sel_j')
             fig1 = make_cmap_fig(
                 st.session_state['cmap1_data'],
                 st.session_state['cmap1_label'],
-                cc1_cmap, marker_i, marker_j
+                cc1_cmap,
+                st.session_state.get('sel_i'),
+                st.session_state.get('sel_j'),
             )
             ev1 = st.plotly_chart(fig1, use_container_width=True,
                                   on_select="rerun", key="cmap1_plot")
@@ -373,9 +402,9 @@ if mode == "C-scan (2D raster)":
     # ─── Colormap 2 ───────────────────────────
     with col_c2:
         st.markdown("**C-scan 2**")
-        cc2_qty  = st.selectbox("Quantity",  QTY_OPTIONS,      key="cc2_qty",  index=1)
-        cc2_win  = st.selectbox("Window",    WIN_OPTIONS_BASE, key="cc2_win")
-        cc2_cmap = st.selectbox("Colormap",  CMAP_OPTIONS,     key="cc2_cmap", index=1)
+        cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
+        cc2_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc2_win")
+        cc2_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc2_cmap", index=1)
         upd2     = st.button("▶  Update", key="upd2", use_container_width=True)
 
         if data_loaded and (upd2 or 'cmap2_data' not in st.session_state):
@@ -388,12 +417,12 @@ if mode == "C-scan (2D raster)":
                     st.error(f"C-scan 2 error: {e}")
 
         if data_loaded and 'cmap2_data' in st.session_state:
-            marker_i = st.session_state.get('sel_i')
-            marker_j = st.session_state.get('sel_j')
             fig2 = make_cmap_fig(
                 st.session_state['cmap2_data'],
                 st.session_state['cmap2_label'],
-                cc2_cmap, marker_i, marker_j
+                cc2_cmap,
+                st.session_state.get('sel_i'),
+                st.session_state.get('sel_j'),
             )
             ev2 = st.plotly_chart(fig2, use_container_width=True,
                                   on_select="rerun", key="cmap2_plot")
