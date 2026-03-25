@@ -163,107 +163,189 @@ if mode == "C-scan (2D raster)":
     st.divider()
 
     # ══════════════════════════════════════════
-    # COLORMAP SECTION — always visible
+    # COLORMAP SECTION
     # ══════════════════════════════════════════
     st.subheader("C-scan")
 
-    ctrl_col, thick_col, _ = st.columns([2, 2, 4])
-    with ctrl_col:
-        quantity_options = ["Peak amplitude (full window)"]
-        if data_gate_enabled:
-            quantity_options += ["Peak amplitude (gate)", "ToF (gate)", "Wave speed (gate)"]
+    # ── Controls row ─────────────────────────
+    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([2, 2, 2, 1])
+
+    with ctrl1:
+        quantity_options = ["Peak amplitude", "ToF", "Wave speed"]
         selected_quantity = st.selectbox("Plot quantity", quantity_options)
-    with thick_col:
-        if data_loaded and "Wave speed" in selected_quantity:
-            thickness_mm = st.number_input("Sample thickness (mm)", value=10.0, step=0.1, format="%.3f")
-            thickness_m  = thickness_mm * 1e-3
+
+    with ctrl2:
+        window_options = ["Full window"]
+        if fw_enabled:
+            window_options.append("FW gate")
+        if bw_enabled:
+            window_options.append("BW gate")
+        if data_gate_enabled:
+            window_options.append("Data gate")
+        selected_window = st.selectbox("Plot window", window_options)
+
+    with ctrl3:
+        if selected_quantity == "Wave speed" and data_loaded:
+            thickness_mm = st.number_input(
+                "Sample thickness (mm)", value=10.0, step=0.01, format="%.3f"
+            )
+            thickness_m = thickness_mm * 1e-3
         else:
-            st.markdown(" ")  # keep layout stable
+            st.markdown(" ")
 
-    col_cmap, col_clicked_wf = st.columns([2, 1])
+    with ctrl4:
+        st.markdown("<br>", unsafe_allow_html=True)
+        update = st.button("Update C-scan", use_container_width=True)
 
-    with col_cmap:
-        colormap_choice = st.selectbox(
-            "Colormap", ["viridis", "plasma", "inferno", "magma", "gray", "RdBu", "jet"],
-            key="cmap1"
-        )
-        if data_loaded:
-            # Compute selected map
-            if selected_quantity == "Peak amplitude (full window)":
-                cmap_data  = compute_amplitude_map(waveform_data)
-                cbar_label = "Amplitude"
-            elif selected_quantity == "Peak amplitude (gate)":
-                idx0       = time_to_index(dg_start, time_axis)
-                idx1       = time_to_index(dg_end,   time_axis)
+    # ── Compute and cache map in session state ──
+    if data_loaded and update:
+        try:
+            # Determine gate window indices
+            if selected_window == "Full window":
+                idx0 = 0
+                idx1 = len(time_axis)
+            elif selected_window == "FW gate":
+                idx0 = time_to_index(fw_start, time_axis)
+                idx1 = time_to_index(fw_end,   time_axis)
+            elif selected_window == "BW gate":
+                idx0 = time_to_index(bw_start, time_axis)
+                idx1 = time_to_index(bw_end,   time_axis)
+            elif selected_window == "Data gate":
+                idx0 = time_to_index(dg_start, time_axis)
+                idx1 = time_to_index(dg_end,   time_axis)
+
+            # Compute selected quantity
+            if selected_quantity == "Peak amplitude":
                 cmap_data  = compute_peak_amplitude_map(waveform_data, idx0, idx1)
                 cbar_label = "Amplitude"
-            elif selected_quantity == "ToF (gate)":
-                idx0       = time_to_index(dg_start, time_axis)
-                idx1       = time_to_index(dg_end,   time_axis)
+            elif selected_quantity == "ToF":
                 cmap_data  = compute_tof_map(waveform_data, idx0, idx1, time_axis)
                 cbar_label = "ToF (µs)"
-            elif selected_quantity == "Wave speed (gate)":
-                idx0       = time_to_index(dg_start, time_axis)
-                idx1       = time_to_index(dg_end,   time_axis)
+            elif selected_quantity == "Wave speed":
                 tof_map    = compute_tof_map(waveform_data, idx0, idx1, time_axis)
                 cmap_data  = compute_wave_speed_map(tof_map, thickness_m)
                 cbar_label = "Wave speed (m/s)"
 
+            st.session_state['cmap_data']  = cmap_data
+            st.session_state['cbar_label'] = cbar_label
+
+        except Exception as e:
+            st.error(f"Error computing map: {e}")
+
+    # ── Auto-compute peak amplitude on first load ──
+    if data_loaded and 'cmap_data' not in st.session_state:
+        with st.spinner("Computing amplitude map..."):
+            st.session_state['cmap_data']  = compute_amplitude_map(waveform_data)
+            st.session_state['cbar_label'] = "Amplitude"
+
+    # ── Clear cache when new file is loaded ───
+    if not data_loaded and 'cmap_data' in st.session_state:
+        del st.session_state['cmap_data']
+        del st.session_state['cbar_label']
+
+    # ── Colormap + clicked waveform ───────────
+    col_cmap, col_clicked_wf = st.columns([2, 1])
+
+    with col_cmap:
+        colormap_choice = st.selectbox(
+            "Colormap",
+            ["viridis", "plasma", "inferno", "magma", "gray", "RdBu", "jet"],
+            key="cmap1"
+        )
+
+        if data_loaded and 'cmap_data' in st.session_state:
+            cmap_data  = st.session_state['cmap_data']
+            cbar_label = st.session_state['cbar_label']
+
             fig_cmap = go.Figure(data=go.Heatmap(
-                z=cmap_data, x=x_axis, y=y_axis,
+                z=cmap_data,
+                x=np.round(x_axis, 4).tolist(),
+                y=np.round(y_axis, 4).tolist(),
                 colorscale=colormap_choice,
-                colorbar=dict(title=cbar_label),
-                hovertemplate="x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>value: %{z:.4f}<extra></extra>"
+                colorbar=dict(title=cbar_label, thickness=15),
+                hovertemplate=(
+                    "x: %{x:.2f} mm<br>"
+                    "y: %{y:.2f} mm<br>"
+                    "value: %{z:.4f}<extra></extra>"
+                )
             ))
             fig_cmap.update_layout(
-                xaxis_title="Scan axis (mm)", yaxis_title="Index axis (mm)",
-                height=420, margin=dict(l=20, r=20, t=30, b=40),
+                xaxis_title="Scan axis (mm)",
+                yaxis_title="Index axis (mm)",
+                height=450,
+                margin=dict(l=20, r=20, t=30, b=40),
             )
-            fig_cmap.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                                   spikedash='dot', spikecolor='white', spikethickness=1)
-            fig_cmap.update_yaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                                   spikedash='dot', spikecolor='white', spikethickness=1)
-            clicked = plotly_events(fig_cmap, click_event=True, key="cmap_click")
+            fig_cmap.update_xaxes(
+                showspikes=True, spikemode='across', spikesnap='cursor',
+                spikedash='dot', spikecolor='white', spikethickness=1
+            )
+            fig_cmap.update_yaxes(
+                showspikes=True, spikemode='across', spikesnap='cursor',
+                spikedash='dot', spikecolor='white', spikethickness=1
+            )
+
+            # Display with st.plotly_chart (reliable heatmap rendering)
+            # Click via plotly_events
+            clicked = plotly_events(
+                fig_cmap,
+                click_event=True,
+                override_height=450,
+                key="cmap_click"
+            )
         else:
-            st.info("Upload data to view C-scan.")
+            st.info("Upload data and press **Update C-scan** to plot.")
             clicked = []
 
+    # ── Clicked waveform panel ────────────────
     with col_clicked_wf:
         st.markdown("**Waveform at selected pixel**")
         if data_loaded and clicked:
             click_x_mm = clicked[0]['x']
             click_y_mm = clicked[0]['y']
-            j = int(np.argmin(np.abs(x_axis - click_x_mm)))
-            i = int(np.argmin(np.abs(y_axis - click_y_mm)))
-            i = int(np.clip(i, 0, waveform_data.shape[0] - 1))
-            j = int(np.clip(j, 0, waveform_data.shape[1] - 1))
+            j = int(np.clip(np.argmin(np.abs(x_axis - click_x_mm)), 0, waveform_data.shape[1]-1))
+            i = int(np.clip(np.argmin(np.abs(y_axis - click_y_mm)), 0, waveform_data.shape[0]-1))
 
             selected_wf  = waveform_data[i, j, :]
             selected_env = compute_envelope(selected_wf)
 
             fig_sel = go.Figure()
-            fig_sel.add_trace(go.Scatter(x=time_axis, y=selected_wf, mode='lines',
-                                         line=dict(color='steelblue', width=1), name='Waveform'))
-            fig_sel.add_trace(go.Scatter(x=time_axis, y=selected_env, mode='lines',
-                                         line=dict(color='tomato', width=1, dash='dash'), name='Envelope'))
+            fig_sel.add_trace(go.Scatter(
+                x=time_axis, y=selected_wf, mode='lines',
+                line=dict(color='steelblue', width=1), name='RF'
+            ))
+            fig_sel.add_trace(go.Scatter(
+                x=time_axis, y=selected_env, mode='lines',
+                line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
+            ))
             if fw_enabled:
-                fig_sel.add_vrect(x0=fw_start, x1=fw_end, fillcolor="rgba(255,160,122,0.2)",
-                                  line_width=1, line_color="tomato")
+                fig_sel.add_vrect(
+                    x0=fw_start, x1=fw_end,
+                    fillcolor="rgba(255,160,122,0.2)",
+                    line_width=1, line_color="tomato"
+                )
             if bw_enabled:
-                fig_sel.add_vrect(x0=bw_start, x1=bw_end, fillcolor="rgba(144,238,144,0.2)",
-                                  line_width=1, line_color="seagreen")
+                fig_sel.add_vrect(
+                    x0=bw_start, x1=bw_end,
+                    fillcolor="rgba(144,238,144,0.2)",
+                    line_width=1, line_color="seagreen"
+                )
             if data_gate_enabled:
-                fig_sel.add_vrect(x0=dg_start, x1=dg_end, fillcolor="rgba(180,180,180,0.15)",
-                                  line_width=1, line_color="gray")
+                fig_sel.add_vrect(
+                    x0=dg_start, x1=dg_end,
+                    fillcolor="rgba(180,180,180,0.15)",
+                    line_width=1, line_color="gray"
+                )
             fig_sel.update_layout(
-                xaxis_title="Time (µs)", yaxis_title="Amplitude",
-                height=420, margin=dict(l=10, r=10, t=30, b=40),
+                xaxis_title="Time (µs)",
+                yaxis_title="Amplitude",
+                height=450,
+                margin=dict(l=10, r=10, t=40, b=40),
                 legend=dict(orientation="h", y=1.1),
-                title=f"Pixel ({j}, {i}) — {click_x_mm:.2f} mm, {click_y_mm:.2f} mm"
+                title=f"({j}, {i}) — {click_x_mm:.2f}, {click_y_mm:.2f} mm"
             )
             st.plotly_chart(fig_sel, use_container_width=True)
         elif data_loaded:
-            st.info("Click a pixel on the C-scan to view its waveform here.")
+            st.info("Click a pixel on the C-scan to view its waveform.")
         else:
             st.info("Upload data first.")
 
