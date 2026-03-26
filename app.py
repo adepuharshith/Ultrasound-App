@@ -20,6 +20,11 @@ from analysis.cscan import (
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(page_title="Ultrasound NDE", layout="wide")
+st.markdown("""
+    <style>
+        .block-container { padding-top: 1.5rem; }
+    </style>
+""", unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center;'>Ultrasound NDE Analysis Tool</h1>", unsafe_allow_html=True)
 st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
 mode = st.radio("", ["C-scan (2D raster)", "Single waveform (CSV)"], horizontal=True, label_visibility="collapsed")
@@ -319,7 +324,12 @@ if mode == "C-scan (2D raster)":
                 x=np.round(x_axis, 4).tolist(),
                 y=np.round(y_axis, 4).tolist(),
                 colorscale=colorscale,
-                colorbar=dict(title=cbar_label, thickness=14),
+                colorbar=dict(
+                    title=cbar_label,
+                    thickness=14,
+                    title_font=dict(size=20, color="black"),
+                    tickfont=dict(size=18, color="black"),
+                ),
                 hovertemplate="x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>value: %{z:.4f}<extra></extra>"
             ))
             if marker_i is not None and marker_j is not None:
