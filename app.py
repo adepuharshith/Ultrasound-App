@@ -226,7 +226,7 @@ if mode == "C-scan (2D raster)":
                                  annotation_position="top left")
             fig_wf.update_layout(
                 xaxis_title="Time (µs)",
-                yaxis_title="Amplitude (normalized)",
+                yaxis_title="Amplitude",
                 height=400,
                 margin=dict(l=60, r=30, t=30, b=60),
                 hovermode="x unified",
@@ -262,10 +262,11 @@ if mode == "C-scan (2D raster)":
             st.subheader("Center waveform")
             st.info("Upload .txt and .dat files to view waveform.")
 
-        st.divider()
+        # st.divider()
 
         # ── BOTTOM: Two colormaps ─────────────
-        st.subheader("C-scan")
+        # st.subheader("C-scan")
+        st.markdown("<h3 style='text-align: center;'>C-scan</h3>", unsafe_allow_html=True)
 
         CMAP_RANGE     = 15.0
         CMAP_OPTIONS   = ["viridis", "plasma", "inferno", "magma", "gray", "RdBu", "jet"]
