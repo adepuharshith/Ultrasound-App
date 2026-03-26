@@ -20,9 +20,10 @@ from analysis.cscan import (
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(page_title="Ultrasound NDE", layout="wide")
-st.title("Ultrasound NDE Analysis Tool")
-
-mode = st.radio("Select mode", ["C-scan (2D raster)", "Single waveform (CSV)"], horizontal=True)
+st.markdown("<h1 style='text-align: center;'>Ultrasound NDE Analysis Tool</h1>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+mode = st.radio("", ["C-scan (2D raster)", "Single waveform (CSV)"], horizontal=True, label_visibility="collapsed")
+st.markdown("</div>", unsafe_allow_html=True)
 st.divider()
 
 # ═════════════════════════════════════════════
@@ -31,11 +32,11 @@ st.divider()
 if mode == "C-scan (2D raster)":
 
     # ── File upload ───────────────────────────
-    col_ul, col_ur = st.columns(2)
-    with col_ul:
-        txt_file = st.file_uploader("Upload metadata file (.txt)", type=["txt"])
-    with col_ur:
-        dat_file = st.file_uploader("Upload data file (.dat)", type=["dat"])
+    col_dat, col_txt = st.columns(2)
+    with col_dat:
+        dat_file = st.file_uploader("Data file (.dat)", type=["dat"])
+    with col_txt:
+        txt_file = st.file_uploader("Metadata file (.txt)", type=["txt"])
 
     st.divider()
 
