@@ -169,7 +169,7 @@ if mode == "C-scan (2D raster)":
         show_val("Index points",    "index_points")
         show_val("Scan increment",  "scan_increment",  "mm")
         show_val("Index increment", "index_increment", "mm")
-        tcol_label, tcol_input = st.columns([1, 2])
+        tcol_label, tcol_input, tcol_pad = st.columns([1, 1, 1])
         with tcol_label:
             st.markdown("**Thickness (mm)**")
         with tcol_input:
@@ -230,7 +230,7 @@ if mode == "C-scan (2D raster)":
             fig_wf.update_layout(
                 xaxis_title="Time (µs)",
                 yaxis_title="Amplitude",
-                height=400,
+                height=500,
                 margin=dict(l=70, r=40, t=30, b=70),
                 hovermode="x unified",
                 legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"),
@@ -373,7 +373,7 @@ if mode == "C-scan (2D raster)":
 
         with col_c1:
             # st.markdown("**C-scan 1**")
-            c1a, c1b, c1c, c1d = st.columns([2, 2, 2, 1])
+            c1a, c1b, c1c, c1d = st.columns([1.5, 1.5, 1.5, 0.5])
             with c1a:
                 cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
             with c1b:
@@ -418,7 +418,7 @@ if mode == "C-scan (2D raster)":
 
         with col_c2:
             # st.markdown("**C-scan 2**")
-            c2a, c2b, c2c, c2d = st.columns([2, 2, 2, 1])
+            c2a, c2b, c2c, c2d = st.columns([1.5, 1.5, 1.5, 0.5])
             with c2a:
                 cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
             with c2b:
