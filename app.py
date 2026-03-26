@@ -120,13 +120,6 @@ if mode == "C-scan (2D raster)":
     with col_gates:
         st.subheader("Gates")
 
-        active_gate_set = st.radio(
-            "Box-select sets:",
-            ["FW gate", "BW gate", "Data gate"],
-            key="active_gate_set"
-        )
-        st.divider()
-
         # FW gate
         fw_enabled = st.checkbox("Show FW gate", value=False)
         if fw_enabled:
@@ -188,7 +181,6 @@ if mode == "C-scan (2D raster)":
                 wf_title = f"Waveform — pixel ({sel_j}, {sel_i}) | {x_mm:.2f} mm, {y_mm:.2f} mm"
 
             st.subheader(wf_title)
-            st.caption(f"Box-select a region to set the **{active_gate_set}** boundaries")
 
             display_wf = waveform_data[sel_i, sel_j, :]
             envelope   = compute_envelope(display_wf)
@@ -223,8 +215,6 @@ if mode == "C-scan (2D raster)":
                 height=380, margin=dict(l=20, r=20, t=30, b=40),
                 hovermode="x unified",
                 legend=dict(orientation="h", y=1.1),
-                dragmode="select",
-                selectdirection="h",
             )
             fig_wf.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
                                  spikedash='dot', spikecolor='gray', spikethickness=1)
@@ -236,21 +226,6 @@ if mode == "C-scan (2D raster)":
                 on_select="rerun", key="wf_plot"
             )
 
-            # Box-select on waveform → update gate boundaries
-            if wf_event and wf_event.selection and wf_event.selection.box:
-                box   = wf_event.selection.box[0]
-                x_min = float(min(box['x']))
-                x_max = float(max(box['x']))
-                if active_gate_set == "FW gate":
-                    st.session_state['fw_start'] = round(x_min, 3)
-                    st.session_state['fw_end']   = round(x_max, 3)
-                elif active_gate_set == "BW gate":
-                    st.session_state['bw_start'] = round(x_min, 3)
-                    st.session_state['bw_end']   = round(x_max, 3)
-                elif active_gate_set == "Data gate":
-                    st.session_state['dg_start'] = round(x_min, 3)
-                    st.session_state['dg_end']   = round(x_max, 3)
-                st.rerun()
         else:
             st.subheader("Center waveform")
             st.info("Upload .txt and .dat files to view waveform.")
