@@ -332,7 +332,8 @@ if mode == "C-scan (2D raster)":
             with c1a:
                 cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
             with c1b:
-                cc1_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc1_win")
+                cc1_win = st.selectbox("Window", WIN_OPTIONS_BASE, key="cc1_win",
+                                       disabled=(cc1_qty == "Wave speed (xcorr)"))
             with c1c:
                 cc1_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc1_cmap")
             with c1d:
@@ -376,7 +377,8 @@ if mode == "C-scan (2D raster)":
             with c2a:
                 cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
             with c2b:
-                cc2_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc2_win")
+                cc2_win = st.selectbox("Window", WIN_OPTIONS_BASE, key="cc2_win",
+                                       disabled=(cc2_qty == "Wave speed (xcorr)"))
             with c2c:
                 cc2_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc2_cmap", index=1)
             with c2d:
