@@ -36,7 +36,7 @@ with top_dat:
 with top_txt:
     txt_file = st.file_uploader("Metadata file (.txt)", type=["txt"])
 
-st.divider()
+# st.divider()
 
 # ═════════════════════════════════════════════
 # MODE 1 — C-SCAN
