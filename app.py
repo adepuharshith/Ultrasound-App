@@ -196,7 +196,7 @@ if mode == "C-scan (2D raster)":
             sel_j = st.session_state.get('sel_j', waveform_data.shape[1] // 2)
 
             if 'sel_i' not in st.session_state:
-                wf_title = "Center waveform"
+                wf_title = "Waveform"
             else:
                 x_mm = x_axis[sel_j]
                 y_mm = y_axis[sel_i]
@@ -210,11 +210,11 @@ if mode == "C-scan (2D raster)":
             fig_wf = go.Figure()
             fig_wf.add_trace(go.Scatter(
                 x=time_axis, y=display_wf, mode='lines',
-                line=dict(color='steelblue', width=1), name='RF'
+                line=dict(color='C0', width=2), name='RF'
             ))
             fig_wf.add_trace(go.Scatter(
                 x=time_axis, y=envelope, mode='lines',
-                line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
+                line=dict(color='C3', width=1, dash='dash'), name='Envelope'
             ))
             if fw_enabled and fw_start is not None:
                 fig_wf.add_vrect(x0=fw_start, x1=fw_end,
@@ -232,7 +232,7 @@ if mode == "C-scan (2D raster)":
                                  line_color="gray", annotation_text="Data",
                                  annotation_position="top left")
             fig_wf.update_layout(
-                xaxis_title="Time (µs)", yaxis_title="Amplitude (normalized)",
+                xaxis_title="Time (µs)", yaxis_title="Amplitude",
                 height=350, margin=dict(l=20, r=20, t=30, b=40),
                 hovermode="x unified",
                 legend=dict(orientation="h", y=1.1),
@@ -246,7 +246,7 @@ if mode == "C-scan (2D raster)":
                 on_select="rerun", key="wf_plot"
             )
         else:
-            st.subheader("Center waveform")
+            st.subheader("Waveform")
             st.info("Upload .txt and .dat files to view waveform.")
 
         st.divider()
