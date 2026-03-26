@@ -196,13 +196,14 @@ if mode == "C-scan (2D raster)":
             sel_j = st.session_state.get('sel_j', waveform_data.shape[1] // 2)
 
             if 'sel_i' not in st.session_state:
-                wf_title = "Center waveform"
+                wf_subtitle = "Center pixel"
             else:
                 x_mm = x_axis[sel_j]
                 y_mm = y_axis[sel_i]
-                wf_title = f"Waveform — pixel ({sel_j}, {sel_i}) | {x_mm:.2f} mm, {y_mm:.2f} mm"
+                wf_subtitle = f"Pixel ({sel_j}, {sel_i}) | {x_mm:.2f} mm, {y_mm:.2f} mm"
 
-            st.subheader(wf_title)
+            st.markdown("<h3 style='text-align: center;'>Waveform</h3>", unsafe_allow_html=True)
+            st.caption(f"<div style='text-align: center;'>{wf_subtitle}</div>", unsafe_allow_html=True)
 
             display_wf = waveform_data[sel_i, sel_j, :]
             envelope   = compute_envelope(display_wf)
@@ -210,11 +211,11 @@ if mode == "C-scan (2D raster)":
             fig_wf = go.Figure()
             fig_wf.add_trace(go.Scatter(
                 x=time_axis, y=display_wf, mode='lines',
-                line=dict(color='C0', width=2), name='RF'
+                line=dict(color='steelblue', width=2), name='RF'
             ))
             fig_wf.add_trace(go.Scatter(
                 x=time_axis, y=envelope, mode='lines',
-                line=dict(color='C3', width=1, dash='dash'), name='Envelope'
+                line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
             ))
             if fw_enabled and fw_start is not None:
                 fig_wf.add_vrect(x0=fw_start, x1=fw_end,
