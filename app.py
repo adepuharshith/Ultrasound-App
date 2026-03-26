@@ -96,20 +96,25 @@ if mode == "C-scan (2D raster)":
         show_val("Voltage",    "voltage",    "V")
         show_val("Damping",    "damping",    "Ω")
         show_val("Gain",       "gain",       "dB")
-        st.divider()
+        # st.divider()
         st.subheader("Scan geometry")
         show_val("Scan points",     "scan_points")
         show_val("Index points",    "index_points")
         show_val("Scan increment",  "scan_increment",  "mm")
         show_val("Index increment", "index_increment", "mm")
-        st.divider()
+        # st.divider()
         # Sample thickness — always visible
-        thickness_mm = st.number_input(
-            "Sample thickness (mm)", value=10.0, step=0.01,
-            format="%.3f", key="thickness_mm"
-        )
+        tcol_label, tcol_input = st.columns([1, 2])
+        with tcol_label:
+            st.markdown("<br>**Thickness (mm)**", unsafe_allow_html=True)
+        with tcol_input:
+            thickness_mm = st.number_input(
+                "Thickness", value=10.0, step=0.01,
+                format="%.3f", key="thickness_mm",
+                label_visibility="collapsed"
+            )
         thickness_m = thickness_mm * 1e-3
-        st.divider()
+        # st.divider()
         st.subheader("Sampling")
         show_val("Fs",          "f_sampling",       "MHz")
         show_val("Samples/wfm", "number_of_samples")
