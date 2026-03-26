@@ -334,15 +334,31 @@ if mode == "C-scan (2D raster)":
                 xaxis_title="Scan axis (mm)",
                 yaxis_title="Index axis (mm)",
                 height=500,
-                margin=dict(l=20, r=20, t=30, b=40),
-                xaxis=dict(range=[-CMAP_RANGE, CMAP_RANGE], constrain='domain'),
-                yaxis=dict(range=[-CMAP_RANGE, CMAP_RANGE],
-                           scaleanchor='x', scaleratio=1),
+                margin=dict(l=60, r=30, t=30, b=60),
+                paper_bgcolor="white",
+                xaxis=dict(
+                    range=[-CMAP_RANGE, CMAP_RANGE],
+                    constrain='domain',
+                    title_font=dict(size=16, color="black"),
+                    tickfont=dict(size=14, color="black"),
+                    linecolor="black", linewidth=1.5,
+                    mirror=True,
+                    showgrid=False,
+                    showspikes=True, spikemode='across', spikesnap='cursor',
+                    spikedash='dot', spikecolor='white', spikethickness=1,
+                ),
+                yaxis=dict(
+                    range=[-CMAP_RANGE, CMAP_RANGE],
+                    scaleanchor='x', scaleratio=1,
+                    title_font=dict(size=16, color="black"),
+                    tickfont=dict(size=14, color="black"),
+                    linecolor="black", linewidth=1.5,
+                    mirror=True,
+                    showgrid=False,
+                    showspikes=True, spikemode='across', spikesnap='cursor',
+                    spikedash='dot', spikecolor='white', spikethickness=1,
+                ),
             )
-            fig.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                             spikedash='dot', spikecolor='white', spikethickness=1)
-            fig.update_yaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                             spikedash='dot', spikecolor='white', spikethickness=1)
             return fig
 
         col_c1, col_c2 = st.columns(2)
