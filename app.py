@@ -205,10 +205,10 @@ if mode == "C-scan (2D raster)":
                 x=time_axis, y=display_wf, mode='lines',
                 line=dict(color='steelblue', width=2), name='RF'
             ))
-            fig_wf.add_trace(go.Scatter(
-                x=time_axis, y=envelope, mode='lines',
-                line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
-            ))
+            # fig_wf.add_trace(go.Scatter(
+            #     x=time_axis, y=envelope, mode='lines',
+            #     line=dict(color='tomato', width=1, dash='dash'), name='Envelope'
+            # ))
             if fw_enabled and fw_start is not None:
                 fig_wf.add_vrect(x0=fw_start, x1=fw_end,
                                  fillcolor="rgba(255,160,122,0.25)", line_width=1,
@@ -225,18 +225,34 @@ if mode == "C-scan (2D raster)":
                                  line_color="gray", annotation_text="Data",
                                  annotation_position="top left")
             fig_wf.update_layout(
-                xaxis_title="Time (µs)", yaxis_title="Amplitude",
-                height=350, margin=dict(l=20, r=20, t=30, b=40),
+                xaxis_title="Time (µs)",
+                yaxis_title="Amplitude (normalized)",
+                height=400,
+                margin=dict(l=60, r=30, t=30, b=60),
                 hovermode="x unified",
-                legend=dict(orientation="h", y=1.1),
-            )
-            fig_wf.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                                 spikedash='dot', spikecolor='gray', spikethickness=1)
-            fig_wf.update_yaxes(showspikes=True, spikemode='across', spikesnap='cursor',
-                                 spikedash='dot', spikecolor='gray', spikethickness=1)
-            wf_event = st.plotly_chart(
-                fig_wf, use_container_width=True,
-                on_select="rerun", key="wf_plot"
+                legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"),
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                xaxis=dict(
+                    title_font=dict(size=16, color="black"),
+                    tickfont=dict(size=14, color="black"),
+                    linecolor="black", linewidth=1.5,
+                    mirror=True,
+                    showgrid=True, gridcolor="rgba(200,200,200,0.4)",
+                    zeroline=False,
+                    showspikes=True, spikemode='across', spikesnap='cursor',
+                    spikedash='dot', spikecolor='gray', spikethickness=1,
+                ),
+                yaxis=dict(
+                    title_font=dict(size=16, color="black"),
+                    tickfont=dict(size=14, color="black"),
+                    linecolor="black", linewidth=1.5,
+                    mirror=True,
+                    showgrid=True, gridcolor="rgba(200,200,200,0.4)",
+                    zeroline=True, zerolinecolor="rgba(150,150,150,0.5)", zerolinewidth=1,
+                    showspikes=True, spikemode='across', spikesnap='cursor',
+                    spikedash='dot', spikecolor='gray', spikethickness=1,
+                ),
             )
         else:
             st.subheader("Center waveform")
@@ -327,7 +343,7 @@ if mode == "C-scan (2D raster)":
         col_c1, col_c2 = st.columns(2)
 
         with col_c1:
-            st.markdown("**C-scan 1**")
+            # st.markdown("**C-scan 1**")
             c1a, c1b, c1c, c1d = st.columns([2, 2, 2, 1])
             with c1a:
                 cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
@@ -367,12 +383,12 @@ if mode == "C-scan (2D raster)":
                         st.session_state['sel_i'] = new_i
                         st.session_state['sel_j'] = new_j
                         st.rerun()
-                st.caption("Click a pixel to update the waveform above.")
+                # st.caption("Click a pixel to update the waveform above.")
             else:
                 st.info("Upload data and press **▶ Update** to plot.")
 
         with col_c2:
-            st.markdown("**C-scan 2**")
+            # st.markdown("**C-scan 2**")
             c2a, c2b, c2c, c2d = st.columns([2, 2, 2, 1])
             with c2a:
                 cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
@@ -412,7 +428,7 @@ if mode == "C-scan (2D raster)":
                         st.session_state['sel_i'] = new_i
                         st.session_state['sel_j'] = new_j
                         st.rerun()
-                st.caption("Click a pixel to update the waveform above.")
+                # st.caption("Click a pixel to update the waveform above.")
             else:
                 st.info("Upload data and press **▶ Update** to plot.")
 
