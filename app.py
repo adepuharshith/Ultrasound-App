@@ -106,14 +106,18 @@ if mode == "C-scan (2D raster)":
         # Sample thickness — always visible
         tcol_label, tcol_input = st.columns([1, 2])
         with tcol_label:
-            st.markdown("<br>**Thickness (mm)**", unsafe_allow_html=True)
+            st.markdown("**Thickness (mm)**")
         with tcol_input:
-            thickness_mm = st.number_input(
-                "Thickness", value=10.0, step=0.01,
-                format="%.3f", key="thickness_mm",
+            thickness_raw = st.text_input(
+                "Thickness", value="10.000",
+                key="thickness_mm",
                 label_visibility="collapsed"
             )
-        thickness_m = thickness_mm * 1e-3
+        try:
+            thickness_m = float(thickness_raw) * 1e-3
+        except ValueError:
+            st.error("Enter a valid number for thickness.")
+            st.stop()
         # st.divider()
         st.subheader("Sampling")
         show_val("Fs",          "f_sampling",       "MHz")
