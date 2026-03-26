@@ -358,6 +358,7 @@ if mode == "C-scan (2D raster)":
                 yaxis=dict(
                     range=[-CMAP_RANGE, CMAP_RANGE],
                     scaleanchor='x', scaleratio=1,
+                    autorange='reversed',
                     title_font=dict(size=20, color="black"),
                     tickfont=dict(size=18, color="black"),
                     linecolor="black", linewidth=1.5,
