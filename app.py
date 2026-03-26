@@ -196,7 +196,7 @@ if mode == "C-scan (2D raster)":
             sel_j = st.session_state.get('sel_j', waveform_data.shape[1] // 2)
 
             if 'sel_i' not in st.session_state:
-                wf_title = "Waveform"
+                wf_title = "Center waveform"
             else:
                 x_mm = x_axis[sel_j]
                 y_mm = y_axis[sel_i]
@@ -246,7 +246,7 @@ if mode == "C-scan (2D raster)":
                 on_select="rerun", key="wf_plot"
             )
         else:
-            st.subheader("Waveform")
+            st.subheader("Center waveform")
             st.info("Upload .txt and .dat files to view waveform.")
 
         st.divider()
