@@ -26,24 +26,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center;'>Ultrasound NDE Analysis Tool</h1>", unsafe_allow_html=True)
-st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-mode = st.radio("", ["C-scan (2D raster)", "Single waveform (CSV)"], horizontal=True, label_visibility="collapsed")
-st.markdown("</div>", unsafe_allow_html=True)
-# st.divider()
+
+top_mode, top_dat, top_txt = st.columns([1.2, 2, 2])
+with top_mode:
+    mode = st.radio("", ["C-scan (2D raster)", "Single waveform (CSV)"],
+                    label_visibility="collapsed")
+with top_dat:
+    dat_file = st.file_uploader("Data file (.dat)", type=["dat"])
+with top_txt:
+    txt_file = st.file_uploader("Metadata file (.txt)", type=["txt"])
+
+st.divider()
 
 # ═════════════════════════════════════════════
 # MODE 1 — C-SCAN
 # ═════════════════════════════════════════════
 if mode == "C-scan (2D raster)":
-
-    # ── File upload ───────────────────────────
-    col_dat, col_txt = st.columns(2)
-    with col_dat:
-        dat_file = st.file_uploader("Data file (.dat)", type=["dat"])
-    with col_txt:
-        txt_file = st.file_uploader("Metadata file (.txt)", type=["txt"])
-
-    st.divider()
 
     # ── Parse metadata (top level) ────────────
     if txt_file:
