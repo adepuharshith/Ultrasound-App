@@ -144,7 +144,7 @@ if mode == "C-scan (2D raster)":
             fw_start = st.session_state.get('fw_start', None)
             fw_end   = st.session_state.get('fw_end',   None)
 
-        st.divider()
+        # st.divider()
 
         # BW gate
         gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
@@ -167,7 +167,7 @@ if mode == "C-scan (2D raster)":
             bw_start = st.session_state.get('bw_start', None)
             bw_end   = st.session_state.get('bw_end',   None)
 
-        st.divider()
+        # st.divider()
 
         # Data gate
         gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
