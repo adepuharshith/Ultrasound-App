@@ -373,7 +373,7 @@ if mode == "C-scan (2D raster)":
 
         with col_c1:
             # st.markdown("**C-scan 1**")
-            c1a, c1b, c1c, c1d = st.columns([1.5, 1.5, 1.5, 0.5])
+            c1a, c1b, c1c, c1d = st.columns([2, 2, 2, 1])
             with c1a:
                 cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
             with c1b:
@@ -418,7 +418,7 @@ if mode == "C-scan (2D raster)":
 
         with col_c2:
             # st.markdown("**C-scan 2**")
-            c2a, c2b, c2c, c2d = st.columns([1.5, 1.5, 1.5, 0.5])
+            c2a, c2b, c2c, c2d = st.columns([2, 2, 2, 1])
             with c2a:
                 cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
             with c2b:
