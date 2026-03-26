@@ -85,44 +85,6 @@ if mode == "C-scan (2D raster)":
 
     # ── LEFT SIDEBAR: Acquisition + Gates ────
     with col_info:
-        st.subheader("Acquisition")
-
-        def show_val(label, key, unit=""):
-            val = metadata.get(key, "—")
-            display = f"{val} {unit}" if (val != "—" and unit) else str(val)
-            st.markdown(f"**{label}:** {display}")
-
-        show_val("Transducer", "transducer", "MHz")
-        show_val("Voltage",    "voltage",    "V")
-        show_val("Damping",    "damping",    "Ω")
-        show_val("Gain",       "gain",       "dB")
-        st.divider()
-        st.subheader("Scan geometry")
-        show_val("Scan points",     "scan_points")
-        show_val("Index points",    "index_points")
-        show_val("Scan increment",  "scan_increment",  "mm")
-        show_val("Index increment", "index_increment", "mm")
-        st.divider()
-        tcol_label, tcol_input = st.columns([1, 2])
-        with tcol_label:
-            st.markdown("**Thickness (mm)**")
-        with tcol_input:
-            thickness_raw = st.text_input(
-                "Thickness", value="10.000",
-                key="thickness_mm", label_visibility="collapsed"
-            )
-        try:
-            thickness_m = float(thickness_raw) * 1e-3
-        except ValueError:
-            st.error("Enter a valid number for thickness.")
-            st.stop()
-        st.divider()
-        st.subheader("Sampling")
-        show_val("Fs",          "f_sampling",       "MHz")
-        show_val("Samples/wfm", "number_of_samples")
-        show_val("Start time",  "start_time",       "µs")
-        show_val("Window",      "length_of_signal", "µs")
-        st.divider()
         st.subheader("Gates")
 
         t0 = float(time_axis[0])  if data_loaded else 0.0
@@ -148,7 +110,6 @@ if mode == "C-scan (2D raster)":
             fw_start = st.session_state.get('fw_start', None)
             fw_end   = st.session_state.get('fw_end',   None)
 
-        st.divider()
         gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
         with gcol_cb:
             bw_enabled = st.checkbox("BW gate", value=False)
@@ -169,7 +130,6 @@ if mode == "C-scan (2D raster)":
             bw_start = st.session_state.get('bw_start', None)
             bw_end   = st.session_state.get('bw_end',   None)
 
-        st.divider()
         gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
         with gcol_cb:
             dg_enabled = st.checkbox("Data gate", value=False)
@@ -189,6 +149,43 @@ if mode == "C-scan (2D raster)":
         else:
             dg_start = st.session_state.get('dg_start', None)
             dg_end   = st.session_state.get('dg_end',   None)
+
+        st.subheader("Acquisition")
+
+        def show_val(label, key, unit=""):
+            val = metadata.get(key, "—")
+            display = f"{val} {unit}" if (val != "—" and unit) else str(val)
+            st.markdown(f"**{label}:** {display}")
+
+        show_val("Transducer", "transducer", "MHz")
+        show_val("Voltage",    "voltage",    "V")
+        show_val("Damping",    "damping",    "Ω")
+        show_val("Gain",       "gain",       "dB")
+        st.subheader("Scan geometry")
+        show_val("Scan points",     "scan_points")
+        show_val("Index points",    "index_points")
+        show_val("Scan increment",  "scan_increment",  "mm")
+        show_val("Index increment", "index_increment", "mm")
+        tcol_label, tcol_input = st.columns([1, 2])
+        with tcol_label:
+            st.markdown("**Thickness (mm)**")
+        with tcol_input:
+            thickness_raw = st.text_input(
+                "Thickness", value="10.000",
+                key="thickness_mm", label_visibility="collapsed"
+            )
+        try:
+            thickness_m = float(thickness_raw) * 1e-3
+        except ValueError:
+            st.error("Enter a valid number for thickness.")
+            st.stop()
+        st.subheader("Sampling")
+        show_val("Fs",          "f_sampling",       "MHz")
+        show_val("Samples/wfm", "number_of_samples")
+        show_val("Start time",  "start_time",       "µs")
+        show_val("Window",      "length_of_signal", "µs")
+
+        
 
     # ── RIGHT MAIN AREA ───────────────────────
     with col_main:
