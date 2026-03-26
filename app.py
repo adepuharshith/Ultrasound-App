@@ -195,15 +195,7 @@ if mode == "C-scan (2D raster)":
             sel_i = st.session_state.get('sel_i', waveform_data.shape[0] // 2)
             sel_j = st.session_state.get('sel_j', waveform_data.shape[1] // 2)
 
-            if 'sel_i' not in st.session_state:
-                wf_subtitle = "Center pixel"
-            else:
-                x_mm = x_axis[sel_j]
-                y_mm = y_axis[sel_i]
-                wf_subtitle = f"Pixel ({sel_j}, {sel_i}) | {x_mm:.2f} mm, {y_mm:.2f} mm"
-
             st.markdown("<h3 style='text-align: center;'>Waveform</h3>", unsafe_allow_html=True)
-            st.caption(f"<div style='text-align: center;'>{wf_subtitle}</div>", unsafe_allow_html=True)
 
             display_wf = waveform_data[sel_i, sel_j, :]
             envelope   = compute_envelope(display_wf)
@@ -264,21 +256,6 @@ if mode == "C-scan (2D raster)":
         if bw_enabled and bw_start is not None: WIN_OPTIONS_BASE.append("BW gate")
         if dg_enabled and dg_start is not None: WIN_OPTIONS_BASE.append("Data gate")
 
-        if data_loaded:
-            xc_col1, xc_col2, _ = st.columns([2, 2, 4])
-            with xc_col1:
-                pulse_width_us = st.number_input(
-                    "Pulse width for xcorr (µs)", value=0.5, step=0.05,
-                    format="%.2f", key="pulse_width_us"
-                )
-            with xc_col2:
-                fw_threshold = st.number_input(
-                    "FW amplitude threshold", value=0.3, step=0.05,
-                    format="%.2f", key="fw_threshold"
-                )
-        else:
-            pulse_width_us = 0.5
-            fw_threshold   = 0.3
 
         def gate_indices(window):
             if not data_loaded:
@@ -308,12 +285,10 @@ if mode == "C-scan (2D raster)":
                     waveform_data,
                     fw_gate_us         = (fw_start, fw_end),
                     bw_gate_us         = (bw_start, bw_end),
-                    pulse_width_us     = pulse_width_us,
                     time_axis          = time_axis,
                     f_sampling_hz      = metadata['f_sampling_hz'],
                     sample_interval_us = metadata['sample_interval'],
                     thickness_m        = thickness_m,
-                    fw_amp_threshold   = fw_threshold,
                 )
                 return ws, "Wave speed (m/s)"
 
@@ -353,10 +328,16 @@ if mode == "C-scan (2D raster)":
 
         with col_c1:
             st.markdown("**C-scan 1**")
-            cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
-            cc1_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc1_win")
-            cc1_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc1_cmap")
-            upd1     = st.button("▶  Update", key="upd1", use_container_width=True)
+            c1a, c1b, c1c, c1d = st.columns([2, 2, 2, 1])
+            with c1a:
+                cc1_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc1_qty")
+            with c1b:
+                cc1_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc1_win")
+            with c1c:
+                cc1_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc1_cmap")
+            with c1d:
+                st.markdown("<br>", unsafe_allow_html=True)
+                upd1 = st.button("▶", key="upd1", use_container_width=True)
 
             if data_loaded and (upd1 or 'cmap1_data' not in st.session_state):
                 with st.spinner("Computing C-scan 1..."):
@@ -391,10 +372,16 @@ if mode == "C-scan (2D raster)":
 
         with col_c2:
             st.markdown("**C-scan 2**")
-            cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
-            cc2_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc2_win")
-            cc2_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc2_cmap", index=1)
-            upd2     = st.button("▶  Update", key="upd2", use_container_width=True)
+            c2a, c2b, c2c, c2d = st.columns([2, 2, 2, 1])
+            with c2a:
+                cc2_qty  = st.selectbox("Quantity", QTY_OPTIONS,      key="cc2_qty",  index=1)
+            with c2b:
+                cc2_win  = st.selectbox("Window",   WIN_OPTIONS_BASE, key="cc2_win")
+            with c2c:
+                cc2_cmap = st.selectbox("Colormap", CMAP_OPTIONS,     key="cc2_cmap", index=1)
+            with c2d:
+                st.markdown("<br>", unsafe_allow_html=True)
+                upd2 = st.button("▶", key="upd2", use_container_width=True)
 
             if data_loaded and (upd2 or 'cmap2_data' not in st.session_state):
                 with st.spinner("Computing C-scan 2..."):

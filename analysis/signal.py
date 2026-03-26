@@ -53,58 +53,15 @@ def extract_windowed_signal(signal, center_index, pulse_width_samples, window_al
 
 def isolate_and_xcorr(signal, fw_gate_idx0, fw_gate_idx1,
                       bw_gate_idx0, bw_gate_idx1,
-                      pulse_width_samples, f_sampling_hz,
-                      fw_amp_threshold=0.3):
+                      f_sampling_hz):
     """
-    For a single waveform:
-      1. Find max envelope peak within FW gate → extract Tukey-windowed pulse
-      2. Find max envelope peak within BW gate → extract Tukey-windowed pulse
-      3. xcorr_cpi on the two pulses → time delay in seconds
-
-    Returns:
-        fw_amp       : float  — peak amplitude of FW pulse (for thresholding)
-        bw_amp       : float  — peak amplitude of BW pulse
-        fw_tof_us    : float  — time of FW peak in µs (sample_interval already in caller)
-        bw_tof_us    : float  — time of BW peak in µs
-        time_delay_s : float  — xcorr time delay in seconds (NaN if below threshold)
+    Isolate FW and BW pulses by zeroing everything outside each gate,
+    then compute xcorr_cpi time delay.
+    Returns time_delay in seconds, or NaN if either gate is all zeros.
     """
-    # Smooth + envelope for robust peak finding
-    smooth     = savgol_filter(signal, window_length=15, polyorder=2)
-    envelope   = np.abs(hilbert(smooth))
+    fw_isolated = np.zeros_like(signal)
+    bw_isolated = np.zeros_like(signal)
+    fw_isolated[fw_gate_idx0:fw_gate_idx1] = signal[fw_gate_idx0:fw_gate_idx1]
+    bw_isolated[bw_gate_idx0:bw_gate_idx1] = signal[bw_gate_idx0:bw_gate_idx1]
 
-    # ── FW peak within gate ───────────────────
-    fw_env_segment  = envelope[fw_gate_idx0:fw_gate_idx1]
-    fw_peak_rel     = int(np.argmax(fw_env_segment))
-    fw_peak_abs     = fw_gate_idx0 + fw_peak_rel
-    fw_amp          = envelope[fw_peak_abs]
-
-    if fw_amp < fw_amp_threshold:
-        return fw_amp, np.nan, np.nan, np.nan, np.nan
-
-    fw_windowed, fw_s, fw_e = extract_windowed_signal(signal, fw_peak_abs, pulse_width_samples)
-
-    # ── BW peak within gate ───────────────────
-    bw_env_segment  = envelope[bw_gate_idx0:bw_gate_idx1]
-    bw_peak_rel     = int(np.argmax(bw_env_segment))
-    bw_peak_abs     = bw_gate_idx0 + bw_peak_rel
-    bw_amp          = envelope[bw_peak_abs]
-
-    bw_windowed, bw_s, bw_e = extract_windowed_signal(signal, bw_peak_abs, pulse_width_samples)
-
-    # ── Build full-length isolated signals ────
-    fw_isolated          = np.zeros_like(signal)
-    bw_isolated          = np.zeros_like(signal)
-    fw_isolated[fw_s:fw_e] = fw_windowed
-    bw_isolated[bw_s:bw_e] = bw_windowed
-
-    # ── xcorr ────────────────────────────────
-    try:
-        time_delay_s = xcorr_cpi(fw_isolated, bw_isolated, f_sampling_hz)
-    except Exception:
-        time_delay_s = np.nan
-
-    # ToF of peak sample in µs — caller passes sample_interval separately
-    fw_tof_sample = fw_peak_abs
-    bw_tof_sample = bw_peak_abs
-
-    return fw_amp, bw_amp, fw_tof_sample, bw_tof_sample, time_delay_s
+    return xcorr_cpi(fw_isolated, bw_isolated, f_sampling_hz)

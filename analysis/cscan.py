@@ -52,9 +52,8 @@ def build_spatial_axes(metadata):
     return x_axis, y_axis
 
 def compute_wave_speed_xcorr(waveform_data, fw_gate_us, bw_gate_us,
-                              pulse_width_us, time_axis,
-                              f_sampling_hz, sample_interval_us,
-                              thickness_m, fw_amp_threshold=0.3):
+                              time_axis, f_sampling_hz, sample_interval_us,
+                              thickness_m):
     """
     Compute wave speed map using FW/BW pulse isolation + xcorr_cpi.
 
@@ -74,7 +73,6 @@ def compute_wave_speed_xcorr(waveform_data, fw_gate_us, bw_gate_us,
         tof_map_us        : (index, scan) array of xcorr time delays in µs
     """
     n_index, n_scan, _ = waveform_data.shape
-    pulse_width_samples = int(pulse_width_us / sample_interval_us)
 
     fw_idx0 = time_to_index(fw_gate_us[0], time_axis)
     fw_idx1 = time_to_index(fw_gate_us[1], time_axis)
@@ -87,9 +85,9 @@ def compute_wave_speed_xcorr(waveform_data, fw_gate_us, bw_gate_us,
     for i in range(n_index):
         for j in range(n_scan):
             signal = waveform_data[i, j, :]
-            _, _, _, _, time_delay_s = isolate_and_xcorr(
+            time_delay_s = isolate_and_xcorr(
                 signal, fw_idx0, fw_idx1, bw_idx0, bw_idx1,
-                pulse_width_samples, f_sampling_hz, fw_amp_threshold
+                f_sampling_hz
             )
             if not np.isnan(time_delay_s) and time_delay_s > 0:
                 wave_speed_map[i, j] = 2.0 * thickness_m / time_delay_s
