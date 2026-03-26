@@ -254,6 +254,10 @@ if mode == "C-scan (2D raster)":
                     spikedash='dot', spikecolor='gray', spikethickness=1,
                 ),
             )
+            wf_event = st.plotly_chart(
+                fig_wf, use_container_width=True,
+                on_select="rerun", key="wf_plot"
+            )
         else:
             st.subheader("Center waveform")
             st.info("Upload .txt and .dat files to view waveform.")
