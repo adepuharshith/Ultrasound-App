@@ -121,13 +121,23 @@ if mode == "C-scan (2D raster)":
         st.subheader("Gates")
 
         # FW gate
-        fw_enabled = st.checkbox("Show FW gate", value=False)
-        if fw_enabled:
-            t0       = float(time_axis[0]) if data_loaded else 0.0
+        t0       = float(time_axis[0]) if data_loaded else 0.0
+        t1       = float(time_axis[-1]) if data_loaded else 10.0
+
+        gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
+        with gcol_cb:
+            fw_enabled = st.checkbox("FW gate", value=False)
+        with gcol_s:
             fw_s_def = st.session_state.get('fw_start', t0)
-            fw_e_def = st.session_state.get('fw_end',   t0 + 2.0)
-            fw_start = st.number_input("FW start (µs)", value=fw_s_def, step=0.1, format="%.2f", key="fw_start_input")
-            fw_end   = st.number_input("FW end (µs)",   value=fw_e_def, step=0.1, format="%.2f", key="fw_end_input")
+            fw_start = st.number_input("Start (µs)", value=fw_s_def, step=0.1, format="%.2f",
+                                       key="fw_start_input", disabled=not fw_enabled,
+                                       label_visibility="collapsed" if not fw_enabled else "visible")
+        with gcol_e:
+            fw_e_def = st.session_state.get('fw_end', t0 + 2.0)
+            fw_end   = st.number_input("End (µs)", value=fw_e_def, step=0.1, format="%.2f",
+                                       key="fw_end_input", disabled=not fw_enabled,
+                                       label_visibility="collapsed" if not fw_enabled else "visible")
+        if fw_enabled:
             st.session_state['fw_start'] = fw_start
             st.session_state['fw_end']   = fw_end
         else:
@@ -137,13 +147,20 @@ if mode == "C-scan (2D raster)":
         st.divider()
 
         # BW gate
-        bw_enabled = st.checkbox("Show BW gate", value=False)
-        if bw_enabled:
-            t1       = float(time_axis[-1]) if data_loaded else 10.0
+        gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
+        with gcol_cb:
+            bw_enabled = st.checkbox("BW gate", value=False)
+        with gcol_s:
             bw_s_def = st.session_state.get('bw_start', t1 - 4.0)
-            bw_e_def = st.session_state.get('bw_end',   t1 - 1.0)
-            bw_start = st.number_input("BW start (µs)", value=bw_s_def, step=0.1, format="%.2f", key="bw_start_input")
-            bw_end   = st.number_input("BW end (µs)",   value=bw_e_def, step=0.1, format="%.2f", key="bw_end_input")
+            bw_start = st.number_input("Start (µs)", value=bw_s_def, step=0.1, format="%.2f",
+                                       key="bw_start_input", disabled=not bw_enabled,
+                                       label_visibility="collapsed" if not bw_enabled else "visible")
+        with gcol_e:
+            bw_e_def = st.session_state.get('bw_end', t1 - 1.0)
+            bw_end   = st.number_input("End (µs)", value=bw_e_def, step=0.1, format="%.2f",
+                                       key="bw_end_input", disabled=not bw_enabled,
+                                       label_visibility="collapsed" if not bw_enabled else "visible")
+        if bw_enabled:
             st.session_state['bw_start'] = bw_start
             st.session_state['bw_end']   = bw_end
         else:
@@ -153,14 +170,20 @@ if mode == "C-scan (2D raster)":
         st.divider()
 
         # Data gate
-        dg_enabled = st.checkbox("Show Data gate", value=False)
-        if dg_enabled:
-            t0       = float(time_axis[0])  if data_loaded else 0.0
-            t1       = float(time_axis[-1]) if data_loaded else 10.0
+        gcol_cb, gcol_s, gcol_e = st.columns([1, 1, 1])
+        with gcol_cb:
+            dg_enabled = st.checkbox("Data gate", value=False)
+        with gcol_s:
             dg_s_def = st.session_state.get('dg_start', t0)
-            dg_e_def = st.session_state.get('dg_end',   t1)
-            dg_start = st.number_input("Data start (µs)", value=dg_s_def, step=0.1, format="%.2f", key="dg_start_input")
-            dg_end   = st.number_input("Data end (µs)",   value=dg_e_def, step=0.1, format="%.2f", key="dg_end_input")
+            dg_start = st.number_input("Start (µs)", value=dg_s_def, step=0.1, format="%.2f",
+                                       key="dg_start_input", disabled=not dg_enabled,
+                                       label_visibility="collapsed" if not dg_enabled else "visible")
+        with gcol_e:
+            dg_e_def = st.session_state.get('dg_end', t1)
+            dg_end   = st.number_input("End (µs)", value=dg_e_def, step=0.1, format="%.2f",
+                                       key="dg_end_input", disabled=not dg_enabled,
+                                       label_visibility="collapsed" if not dg_enabled else "visible")
+        if dg_enabled:
             st.session_state['dg_start'] = dg_start
             st.session_state['dg_end']   = dg_end
         else:
